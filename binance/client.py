@@ -360,7 +360,7 @@ class Client(BaseClient):
             self.response = getattr(self.session, method)(uri, **kwargs_)
             if (200 <= self.response.status_code < 300) or (self.response.json().get("code") != -1021):  # to retry at error `APIError(code=-1021): Timestamp for this request is outside of the recvWindow.`
                 break
-            time.sleep(1)
+            time.sleep(0.2)
             try_count -= 1
         return self._handle_response(self.response)
 
