@@ -2,6 +2,7 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Dict, Optional, List, Tuple, Union, Any
 
+import copy
 import aiohttp
 import asyncio
 import hashlib
@@ -337,7 +338,8 @@ class Client(BaseClient):
         base_endpoint: str = BaseClient.BASE_ENDPOINT_DEFAULT, testnet: bool = False,
         private_key: Optional[Union[str, Path]] = None, private_key_pass: Optional[str] = None
     ):
-
+        
+        print(f"\nUsing custom Binance API (@Kubeflow ~/other_codes_and_repos/binance_api_repo) ...\n")
         super().__init__(api_key, api_secret, requests_params, tld, base_endpoint, testnet, private_key, private_key_pass)
 
         # init DNS and SSL cert
@@ -352,10 +354,14 @@ class Client(BaseClient):
         return session
 
     def _request(self, method, uri: str, signed: bool, force_params: bool = False, **kwargs):
-
-        kwargs = self._get_request_kwargs(method, signed, force_params, **kwargs)
-
-        self.response = getattr(self.session, method)(uri, **kwargs)
+        try_count = 3  # max tries before skipping the request
+        while try_count > 0:
+            kwargs_ = self._get_request_kwargs(method, signed, force_params, **copy.deepcopy(kwargs))
+            self.response = getattr(self.session, method)(uri, **kwargs_)
+            if (200 <= self.response.status_code < 300) or (self.response.json().get("code") != -1021):  # to retry at error `APIError(code=-1021): Timestamp for this request is outside of the recvWindow.`
+                break
+            time.sleep(1)
+            try_count -= 1
         return self._handle_response(self.response)
 
     @staticmethod
