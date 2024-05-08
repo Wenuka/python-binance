@@ -358,7 +358,10 @@ class Client(BaseClient):
         while try_count > 0:
             kwargs_ = self._get_request_kwargs(method, signed, force_params, **copy.deepcopy(kwargs))
             self.response = getattr(self.session, method)(uri, **kwargs_)
-            if (200 <= self.response.status_code < 300) or (self.response.json().get("code") != -1021):  # to retry at error `APIError(code=-1021): Timestamp for this request is outside of the recvWindow.`
+            # to retry at error 
+            #   `APIError(code=-1021): Timestamp for this request is outside of the recvWindow.`
+            #   `APIError(code=-1007): Timeout waiting for response from backend server.`
+            if (200 <= self.response.status_code < 300) or (self.response.json().get("code") not in [-1021, -1007]):
                 break
             time.sleep(0.2)
             try_count -= 1
